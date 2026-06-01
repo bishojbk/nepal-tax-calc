@@ -1,6 +1,8 @@
 import { calculate, type CalcOptions } from '../calculate'
+import { TAX_YEARS } from '../../config/tax'
 
 const baseOpts: CalcOptions = {
+  fiscalYear: '2082/83',
   filingStatus: 'single',
   includeSSF: true,
   grossIncludesEmployerSSF: true,
@@ -16,12 +18,13 @@ const baseOpts: CalcOptions = {
   isFemale: false,
   foreignTaxPaidAnnual: 0,
   hasMedicalExpenses: false,
+  festivalBonusAnnual: 0,
 }
 
-test('medical tax credit applies Rs 750 against tax', () => {
+test('medical tax credit applies Rs 1,500 against tax', () => {
   const baseline = calculate(150_000, baseOpts)
   const withMedical = calculate(150_000, { ...baseOpts, hasMedicalExpenses: true })
-  expect(baseline.annualTax - withMedical.annualTax).toBe(750)
+  expect(baseline.annualTax - withMedical.annualTax).toBe(1_500)
 })
 
 test('medical tax credit cannot drive tax negative', () => {
@@ -108,11 +111,11 @@ test('couple slabs: 30% and 36% thresholds match single (no bump at top)', () =>
   // Rs 20L (same as single) and 36% band tops out at Rs 50L (same as single).
   // Only the first three bands get the Rs 1L couple bump.
   // Regression guard for the 21L / 51L bug.
-  const { taxSlabs } = require('../../config/tax').TAX_CONFIG
-  const couple30 = taxSlabs.couple.find((s: { rate: number }) => s.rate === 0.30)
-  const couple36 = taxSlabs.couple.find((s: { rate: number }) => s.rate === 0.36)
-  expect(couple30.upTo).toBe(2_000_000)
-  expect(couple36.upTo).toBe(5_000_000)
+  const couple = TAX_YEARS['2082/83'].taxSlabs.couple ?? []
+  const couple30 = couple.find((s) => s.rate === 0.30)
+  const couple36 = couple.find((s) => s.rate === 0.36)
+  expect(couple30?.upTo).toBe(2_000_000)
+  expect(couple36?.upTo).toBe(5_000_000)
 })
 
 /* ─── Female rebate ───────────────────────────────────────────────── */
@@ -351,4 +354,78 @@ test('Mode B with SSF off: basic reverts to 60% of gross', () => {
   expect(r.ssfMonthly).toBe(0)
   expect(r.ssfEmployeeMonthly).toBe(0)
   expect(r.ssfEmployerMonthly).toBe(0)
+})
+
+/* ─── FY 2083/84 unified slabs (couple removed, top rate 29%) ──────── */
+
+const opts2084: CalcOptions = { ...baseOpts, fiscalYear: '2083/84' }
+
+test('2083/84: 150k anchor — 1% band to ₨10L cuts tax sharply', () => {
+  const r = calculate(150_000, opts2084)
+  // SSF + retirement cap unchanged → same SSF/CIT as 2082/83.
+  expect(Math.round(r.ssfMonthly)).toBe(27_900)
+  expect(Math.round(r.citMonthly)).toBe(13_767)
+  // Taxable ₨13,00,000: 0% on first 10L (SSF waiver), 10% on next ₨3L = ₨30,000.
+  expect(Math.round(r.annualTaxable)).toBe(1_300_000)
+  expect(Math.round(r.annualTax)).toBe(30_000)
+  expect(Math.round(r.monthlyTax)).toBe(2_500)
+  expect(Math.round(r.inhand)).toBe(105_833)
+})
+
+test('2083/84 taxes far less than 2082/83 at the same gross', () => {
+  const newYr = calculate(150_000, opts2084)
+  const oldYr = calculate(150_000, baseOpts) // 2082/83
+  expect(newYr.annualTax).toBeLessThan(oldYr.annualTax)
+})
+
+test('2083/84 has no couple slabs — couple coerces to single math', () => {
+  const single = calculate(200_000, opts2084)
+  const asCouple = calculate(200_000, { ...opts2084, filingStatus: 'couple' })
+  expect(asCouple.annualTax).toBe(single.annualTax)
+  expect(asCouple.annualTaxable).toBe(single.annualTaxable)
+})
+
+test('2083/84 disability exemption = ₨5,00,000 (50% of ₨10L band)', () => {
+  const normal = calculate(300_000, opts2084)
+  const disabled = calculate(300_000, { ...opts2084, hasDisability: true })
+  expect(disabled.annualTaxable).toBe(normal.annualTaxable - 500_000)
+})
+
+test('2083/84 medical credit is Rs 1,500', () => {
+  const baseline = calculate(300_000, opts2084)
+  const withMedical = calculate(300_000, { ...opts2084, hasMedicalExpenses: true })
+  expect(baseline.annualTax - withMedical.annualTax).toBe(1_500)
+})
+
+test('2083/84 top slab label is 27% or 29% at very high income', () => {
+  const r = calculate(5_000_000, opts2084)
+  const topSlab = r.slabBreakdown[r.slabBreakdown.length - 1]
+  expect(['27%', '29%']).toContain(topSlab.label)
+})
+
+/* ─── Festival / Dashain bonus (matches real company annexure) ─────── */
+
+test('150k + ₨90k Dashain bonus: annual tax reconciles with the company payslip (FY 2082/83)', () => {
+  // Company annexure (CIT=0): total annual tax 2,46,560, annual net deposit 13,08,640.
+  // We tax the bonus separately, so the monthly figure stays the regular-month in-hand.
+  const r = calculate(150_000, { ...baseOpts, includeCIT: false, festivalBonusAnnual: 90_000 })
+  expect(Math.round(r.annualTaxable)).toBe(1_465_200)                     // salary only
+  expect(Math.round(r.annualTax)).toBe(219_560)                          // salary tax
+  expect(Math.round(r.festivalBonusTax)).toBe(27_000)                    // 30% × 90k (top band)
+  expect(Math.round(r.festivalBonusNet)).toBe(63_000)
+  expect(Math.round(r.annualTax + r.festivalBonusTax)).toBe(246_560)     // == company total tax
+  expect(Math.round(r.inhand)).toBe(103_803)                             // regular monthly in-hand
+  expect(Math.round(r.inhand * 12 + r.festivalBonusNet)).toBe(1_308_640) // == company net deposit
+})
+
+test('festival bonus does NOT change the regular monthly in-hand (taxed separately)', () => {
+  const noBonus = calculate(150_000, { ...baseOpts, includeCIT: false })
+  const withBonus = calculate(150_000, { ...baseOpts, includeCIT: false, festivalBonusAnnual: 90_000 })
+  // Monthly figures identical — the bonus is a separate once-a-year lump.
+  expect(withBonus.inhand).toBe(noBonus.inhand)
+  expect(withBonus.annualTaxable).toBe(noBonus.annualTaxable)
+  expect(withBonus.monthlyTax).toBe(noBonus.monthlyTax)
+  // But the bonus is fully taxed (no exemption) at the marginal rate.
+  expect(withBonus.festivalBonusTax).toBeGreaterThan(0)
+  expect(Math.round(withBonus.festivalBonusNet)).toBe(90_000 - Math.round(withBonus.festivalBonusTax))
 })

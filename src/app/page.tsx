@@ -13,7 +13,7 @@ import { TaxGuide } from '@/components/insights/TaxGuide'
 import { TaxSavingSummary } from '@/components/insights/TaxSavingSummary'
 import { RaisePlanner } from '@/components/raise-planner/RaisePlanner'
 import { AnimatedNumber } from '@/components/AnimatedNumber'
-import { TAX_CONFIG } from '@/config/tax'
+import { UI_CONFIG, FLAT_TAX, TAX_YEARS, FISCAL_YEARS, DEFAULT_FY, SUPPORTS_COUPLE, type FiscalYear } from '@/config/tax'
 import { useApp } from '@/lib/app-context'
 import { calculate, type CalcOptions } from '@/lib/calculate'
 import { formatNPR, formatPct } from '@/lib/format'
@@ -29,9 +29,10 @@ export default function Page() {
   const { t, theme, setTheme, lang, setLang } = useApp()
   const [mode, setMode] = useState<IncomeMode>('nepal')
   const [section, setSection] = useState<Section>('calculator')
-  const [gross, setGross] = useState<number>(TAX_CONFIG.ui.defaults.gross)
+  const [gross, setGross] = useState<number>(UI_CONFIG.defaults.gross)
 
   const [options, setOptions] = useState<CalcOptions>({
+    fiscalYear: DEFAULT_FY,
     filingStatus: 'single',
     includeSSF: true,
     grossIncludesEmployerSSF: true,
@@ -47,6 +48,7 @@ export default function Page() {
     isFemale: false,
     foreignTaxPaidAnnual: 0,
     hasMedicalExpenses: false,
+    festivalBonusAnnual: 0,
   })
 
   // Restore state from URL on mount
@@ -65,6 +67,8 @@ export default function Page() {
     setOptions((prev) => {
       const next = { ...prev, ...patch }
       if (patch.filingStatus === 'couple') next.isFemale = false
+      // Switching to a fiscal year without couple filing forces single.
+      if (patch.fiscalYear && !SUPPORTS_COUPLE(patch.fiscalYear)) next.filingStatus = 'single'
       return next
     })
   }, [])
@@ -96,9 +100,24 @@ export default function Page() {
                 <span className="text-2xl" role="img" aria-label="Nepal flag">🇳🇵</span>
                 <span>{t('app.title')}</span>
               </h1>
-              <p className="text-xs text-muted-foreground mt-1 tracking-wide">{t('app.subtitle')}</p>
+              <p className="text-xs text-muted-foreground mt-1 tracking-wide">{t('fy.prefix')} {TAX_YEARS[options.fiscalYear].label.bs} ({TAX_YEARS[options.fiscalYear].label.ad}) — {options.fiscalYear === DEFAULT_FY ? t('fy.new') : t('fy.current')} · {t('app.actname')}</p>
             </div>
             <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-0.5 bg-secondary/80 rounded-lg p-0.5 mr-0.5" role="group" aria-label={t('fy.label')}>
+                {FISCAL_YEARS.map((fy) => (
+                  <button
+                    key={fy}
+                    onClick={() => handleOptionsChange({ fiscalYear: fy })}
+                    aria-pressed={options.fiscalYear === fy}
+                    className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-all text-center focus-visible:ring-2 focus-visible:ring-ring ${
+                      options.fiscalYear === fy ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <span className="block leading-none">{TAX_YEARS[fy].label.bs}</span>
+                    <span className="block text-[9px] font-normal opacity-70 leading-tight mt-0.5">{fy === DEFAULT_FY ? t('fy.new') : t('fy.current')}</span>
+                  </button>
+                ))}
+              </div>
               <button
                 onClick={() => setLang(lang === 'en' ? 'ne' : 'en')}
                 aria-label={lang === 'en' ? 'Switch to Nepali' : 'English मा बदल्नुहोस्'}
@@ -178,10 +197,12 @@ export default function Page() {
                     <div className="space-y-5">
                       <GrossSlider value={gross} onChange={setGross} />
                       <DeductionToggles gross={gross} options={options} maxCitMonthly={result.maxCitMonthly} onChange={handleOptionsChange} />
-                      <FilingOptions options={options} onChange={handleOptionsChange} />
+                      {SUPPORTS_COUPLE(options.fiscalYear) && (
+                        <FilingOptions options={options} onChange={handleOptionsChange} />
+                      )}
                       <SpecialSituations options={options} onChange={handleOptionsChange} />
                       <SkipCITToggle result={result} options={options} />
-                      <TaxGuide />
+                      <TaxGuide fiscalYear={options.fiscalYear} />
                     </div>
                     <div className="lg:sticky lg:top-28 lg:self-start lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto lg:scrollbar-thin">
                       <StickyOutput result={result} />
@@ -204,7 +225,7 @@ export default function Page() {
 
           {mode === 'foreign' && (
             <motion.div key="foreign" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-              <ForeignMode />
+              <ForeignMode fiscalYear={options.fiscalYear} />
             </motion.div>
           )}
           {mode === 'freelancer' && (
@@ -235,9 +256,9 @@ const ZERO_TAX = ['UAE', 'Saudi Arabia', 'Bahrain', 'Kuwait', 'Oman']
 const DTAA = ['Austria', 'Bangladesh', 'China', 'India', 'Korea', 'Mauritius', 'Norway', 'Pakistan', 'Qatar', 'Sri Lanka', 'Thailand']
 const ALL_COUNTRIES = [...new Set([...ZERO_TAX, ...DTAA, 'Other'])].sort()
 
-function ForeignMode() {
+function ForeignMode({ fiscalYear }: { fiscalYear: FiscalYear }) {
   const { t } = useApp()
-  const [gross, setGross] = useState<number>(TAX_CONFIG.ui.defaults.gross)
+  const [gross, setGross] = useState<number>(UI_CONFIG.defaults.gross)
   const [country, setCountry] = useState('Other')
   const [foreignTax, setForeignTax] = useState(0)
   const [filing, setFiling] = useState<'single' | 'couple'>('single')
@@ -246,14 +267,16 @@ function ForeignMode() {
 
   const isZero = ZERO_TAX.includes(country)
   const isDtaa = DTAA.includes(country)
+  const coupleOk = SUPPORTS_COUPLE(fiscalYear)
+  const effectiveFiling: 'single' | 'couple' = coupleOk ? filing : 'single'
 
   const opts: CalcOptions = {
-    filingStatus: filing, includeSSF: false, grossIncludesEmployerSSF: true,
+    fiscalYear, filingStatus: effectiveFiling, includeSSF: false, grossIncludesEmployerSSF: true,
     includeCIT: useCit, citAmount: Infinity,
     lifeInsurance: 0, healthInsurance: 0, buildingInsurance: 0, donationAnnual: 0,
     remoteAreaGrade: 'none', hasDisability: false, isSeniorCitizen: false,
     isFemale, foreignTaxPaidAnnual: isZero ? 0 : foreignTax,
-    hasMedicalExpenses: false,
+    hasMedicalExpenses: false, festivalBonusAnnual: 0,
   }
   const result = useMemo(() => calculate(gross, opts), [gross, opts])
 
@@ -275,7 +298,7 @@ function ForeignMode() {
             </div>
 
             <MoneyInput value={gross} onChange={setGross} label={t('foreign.gross')}
-              min={TAX_CONFIG.ui.slider.min} max={TAX_CONFIG.ui.slider.max} step={TAX_CONFIG.ui.slider.step} showSlider />
+              min={UI_CONFIG.slider.min} max={UI_CONFIG.slider.max} step={UI_CONFIG.slider.step} showSlider />
 
             <div>
               <label className="text-xs text-muted-foreground font-semibold block mb-1.5">{t('foreign.country')}</label>
@@ -300,14 +323,16 @@ function ForeignMode() {
               <MoneyInput value={foreignTax} onChange={setForeignTax} label={t('foreign.taxpaid')} size="sm" showSlider={false} />
             )}
 
-            <div className="flex gap-2">
-              {(['single', 'couple'] as const).map((s) => (
-                <button key={s} onClick={() => { setFiling(s); if (s === 'couple') setIsFemale(false) }}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all border-2 ${filing === s ? 'bg-foreground text-background border-foreground' : 'bg-background border-border text-muted-foreground hover:border-foreground/30'}`}>
-                  {t(s === 'single' ? 'filing.single' : 'filing.couple')}
-                </button>
-              ))}
-            </div>
+            {coupleOk && (
+              <div className="flex gap-2">
+                {(['single', 'couple'] as const).map((s) => (
+                  <button key={s} onClick={() => { setFiling(s); if (s === 'couple') setIsFemale(false) }}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all border-2 ${filing === s ? 'bg-foreground text-background border-foreground' : 'bg-background border-border text-muted-foreground hover:border-foreground/30'}`}>
+                    {t(s === 'single' ? 'filing.single' : 'filing.couple')}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <label className="flex items-center justify-between gap-3 cursor-pointer">
               <div>
@@ -321,9 +346,9 @@ function ForeignMode() {
               <div>
                 <span className="text-sm text-foreground font-medium">{t('special.female')}</span>
                 <span className="block text-xs text-muted-foreground">{t('special.female.desc')}</span>
-                {filing === 'couple' && <span className="block text-xs text-destructive">{t('special.female.denied')}</span>}
+                {effectiveFiling === 'couple' && <span className="block text-xs text-destructive">{t('special.female.denied')}</span>}
               </div>
-              <Switch checked={isFemale} onCheckedChange={(v: boolean) => setIsFemale(v)} disabled={filing === 'couple'} />
+              <Switch checked={isFemale} onCheckedChange={(v: boolean) => setIsFemale(v)} disabled={effectiveFiling === 'couple'} />
             </label>
           </CardContent>
         </Card>
@@ -339,8 +364,8 @@ function ForeignMode() {
 
 function FreelancerMode() {
   const { t } = useApp()
-  const [gross, setGross] = useState<number>(TAX_CONFIG.ui.defaults.gross)
-  const flatRate = TAX_CONFIG.freelancer.flatRate  // 5%
+  const [gross, setGross] = useState<number>(UI_CONFIG.defaults.gross)
+  const flatRate = FLAT_TAX.freelancer  // 5%
   const annual = gross * 12
   const tax = annual * flatRate
   const inhand = gross - tax / 12
@@ -364,7 +389,7 @@ function FreelancerMode() {
             </div>
           </div>
           <MoneyInput value={gross} onChange={setGross} label={t('freelancer.gross')}
-            min={TAX_CONFIG.ui.slider.min} max={TAX_CONFIG.ui.slider.max} step={TAX_CONFIG.ui.slider.step} showSlider />
+            min={UI_CONFIG.slider.min} max={UI_CONFIG.slider.max} step={UI_CONFIG.slider.step} showSlider />
         </CardContent>
       </Card>
 
@@ -377,8 +402,8 @@ function FreelancerMode() {
 
 function NonResidentMode() {
   const { t } = useApp()
-  const [gross, setGross] = useState<number>(TAX_CONFIG.ui.defaults.gross)
-  const flatRate = 0.25
+  const [gross, setGross] = useState<number>(UI_CONFIG.defaults.gross)
+  const flatRate = FLAT_TAX.nonResident
   const annual = gross * 12
   const tax = annual * flatRate
   const inhand = gross - tax / 12
@@ -403,7 +428,7 @@ function NonResidentMode() {
             </div>
           </div>
           <MoneyInput value={gross} onChange={setGross} label={t('nonresident.gross')}
-            min={TAX_CONFIG.ui.slider.min} max={TAX_CONFIG.ui.slider.max} step={TAX_CONFIG.ui.slider.step} showSlider />
+            min={UI_CONFIG.slider.min} max={UI_CONFIG.slider.max} step={UI_CONFIG.slider.step} showSlider />
         </CardContent>
       </Card>
 

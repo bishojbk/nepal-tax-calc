@@ -3,7 +3,11 @@ export type Lang = 'en' | 'ne'
 const translations = {
   // Header
   'app.title': { en: 'Nepal Tax Calculator', ne: 'नेपाल कर क्याल्कुलेटर' },
-  'app.subtitle': { en: 'FY 2081/82 · Income Tax Act 2058', ne: 'आ.व. २०८१/८२ · आयकर ऐन २०५८' },
+  'app.actname': { en: 'Income Tax Act 2058', ne: 'आयकर ऐन २०५८' },
+  'fy.prefix': { en: 'FY', ne: 'आ.व.' },
+  'fy.label': { en: 'Fiscal Year', ne: 'आर्थिक वर्ष' },
+  'fy.current': { en: 'Current', ne: 'हालको' },
+  'fy.new': { en: 'New budget', ne: 'नयाँ बजेट' },
 
   // Mode selector
   'mode.nepal': { en: 'Nepal Employment', ne: 'नेपाल रोजगारी' },
@@ -31,8 +35,8 @@ const translations = {
 
   // SSF
   'ssf.title': { en: 'Social Security Fund', ne: 'सामाजिक सुरक्षा कोष' },
-  'ssf.desc': { en: 'Employee 11% + Employer 20% — waives 1% SST slab', ne: 'कर्मचारी ११% + नियोक्ता २०% — १% SST स्ल्याब छुट' },
-  'ssf.mode.label': { en: 'Gross includes employer 20% (CTC)', ne: 'कुलमा नियोक्ताको २०% समावेश (CTC)' },
+  'ssf.desc': { en: 'Employee 11% + Employer 20% — skips the 1% social-security tax', ne: 'कर्मचारी ११% + नियोक्ता २०% — १% सामाजिक सुरक्षा कर छुट' },
+  'ssf.mode.label': { en: 'My salary already includes the employer 20% SSF (CTC)', ne: 'मेरो तलबमा नियोक्ताको २०% SSF पहिले नै समावेश छ (CTC)' },
   'ssf.mode.loaded': { en: 'Loaded gross — full 31% deducts from take-home (matches most offer letters)', ne: 'CTC कुल — पूर्ण ३१% हातमा आउनेबाट कट्टी हुन्छ (अधिकांश नियुक्ति पत्रसँग मेल)' },
   'ssf.mode.employee': { en: 'Employee gross — only 11% deducts; employer pays 20% on top', ne: 'कर्मचारी कुल — मात्र ११% कट्टी; नियोक्ताले २०% थप तिर्छ' },
   'ssf.employee': { en: 'Employee share (11%)', ne: 'कर्मचारी भाग (११%)' },
@@ -59,6 +63,9 @@ const translations = {
   'deductions.building': { en: 'Building Insurance', ne: 'भवन बीमा' },
   'deductions.donation': { en: 'Donation (annual)', ne: 'दान (वार्षिक)' },
   'deductions.donation.cap': { en: 'lower of ₨1,00,000 or 5% of taxable', ne: '₨१,००,००० वा करयोग्य आयको ५% मध्ये कम' },
+  'income.bonus': { en: 'Dashain / Festival Bonus (annual)', ne: 'दशैं / चाडपर्व बोनस (वार्षिक)' },
+  'income.bonus.hint': { en: 'Taxable income paid once a year — legal min ≈ 1 month basic', ne: 'वर्षमा एक पटक दिइने करयोग्य आय — कानूनी न्यूनतम ≈ १ महिनाको आधारभूत' },
+  'income.bonus.fill': { en: '1 month basic', ne: '१ महिना आधारभूत' },
 
   // Special situations
   'special.title': { en: 'Special Situations', ne: 'विशेष अवस्था' },
@@ -70,13 +77,14 @@ const translations = {
   'special.disability': { en: 'Disability', ne: 'अपाङ्गता' },
   'special.disability.desc': { en: 'extra exemption — certificate required', ne: 'अतिरिक्त छुट — प्रमाणपत्र आवश्यक' },
   'special.medical': { en: 'Medical Expenses', ne: 'चिकित्सा खर्च' },
-  'special.medical.desc': { en: 'Rs 750 tax credit (Section 51) — requires receipts', ne: 'रु ७५० कर छुट (दफा ५१) — रसिद आवश्यक' },
+  'special.medical.desc': { en: 'Rs 1,500 tax credit (Section 51) — requires receipts', ne: 'रु १,५०० कर छुट (दफा ५१) — रसिद आवश्यक' },
   'special.remote': { en: 'Remote Area Grade', ne: 'सुदूरवर्ती क्षेत्र ग्रेड' },
   'special.remote.none': { en: 'None', ne: 'कुनै पनि होइन' },
 
   // Output
   'output.inhand': { en: 'Monthly In-Hand', ne: 'मासिक हातमा आउने' },
   'output.annual.inhand': { en: 'Annual In-Hand', ne: 'वार्षिक हातमा आउने' },
+  'output.bonus.note': { en: 'festival bonus (once a year, after tax)', ne: 'चाडपर्व बोनस (वर्षमा एक पटक, कर पछि)' },
   'output.effective': { en: 'Effective rate', ne: 'प्रभावकारी दर' },
   'output.breakdown': { en: 'Monthly Breakdown', ne: 'मासिक विवरण' },
   'output.gross': { en: 'Gross Salary', ne: 'कुल तलब' },

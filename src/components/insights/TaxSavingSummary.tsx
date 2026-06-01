@@ -1,6 +1,6 @@
 "use client"
 
-import { TAX_CONFIG } from '@/config/tax'
+import { TAX_YEARS } from '@/config/tax'
 import { formatNPR } from '@/lib/format'
 import { useApp } from '@/lib/app-context'
 import type { CalcResult, CalcOptions } from '@/lib/calculate'
@@ -21,6 +21,7 @@ interface Item {
 
 export function TaxSavingSummary({ result, options }: Props) {
   const { t } = useApp()
+  const CFG = TAX_YEARS[options.fiscalYear]
   const activeSlab = [...result.slabBreakdown].reverse().find((s) => s.tax > 0)
   const marginalRate = activeSlab?.rate ?? 0
 
@@ -33,7 +34,7 @@ export function TaxSavingSummary({ result, options }: Props) {
       active: options.includeSSF,
       annualSaving: options.includeSSF ? ssfTaxDeductionAnnual * marginalRate : 0,
       potentialSaving: !options.includeSSF
-        ? result.gross * TAX_CONFIG.salary.basicRatio * TAX_CONFIG.ssf.totalRate * 12 * marginalRate
+        ? result.gross * CFG.salary.basicRatio * CFG.ssf.totalRate * 12 * marginalRate
         : undefined,
     },
     {
@@ -49,7 +50,7 @@ export function TaxSavingSummary({ result, options }: Props) {
       active: options.lifeInsurance > 0,
       annualSaving: options.lifeInsurance * marginalRate,
       potentialSaving: options.lifeInsurance === 0
-        ? TAX_CONFIG.deductions.lifeInsurance.max * marginalRate
+        ? CFG.deductions.lifeInsurance.max * marginalRate
         : undefined,
     },
     {
@@ -57,7 +58,7 @@ export function TaxSavingSummary({ result, options }: Props) {
       active: options.healthInsurance > 0,
       annualSaving: options.healthInsurance * marginalRate,
       potentialSaving: options.healthInsurance === 0
-        ? TAX_CONFIG.deductions.healthInsurance.max * marginalRate
+        ? CFG.deductions.healthInsurance.max * marginalRate
         : undefined,
     },
     {
@@ -65,13 +66,13 @@ export function TaxSavingSummary({ result, options }: Props) {
       active: options.buildingInsurance > 0,
       annualSaving: options.buildingInsurance * marginalRate,
       potentialSaving: options.buildingInsurance === 0
-        ? TAX_CONFIG.deductions.buildingInsurance.max * marginalRate
+        ? CFG.deductions.buildingInsurance.max * marginalRate
         : undefined,
     },
   ]
 
   if (options.isFemale && options.filingStatus === 'single') {
-    const rebateAmt = result.annualTax * TAX_CONFIG.rebates.female.rate / (1 - TAX_CONFIG.rebates.female.rate)
+    const rebateAmt = result.annualTax * CFG.rebates.female.rate / (1 - CFG.rebates.female.rate)
     items.push({
       label: `${t('special.female')} (10%)`,
       active: true,

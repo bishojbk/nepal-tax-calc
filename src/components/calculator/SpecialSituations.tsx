@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { TAX_CONFIG } from '@/config/tax'
+import { TAX_YEARS } from '@/config/tax'
 import type { RemoteGrade } from '@/config/tax'
 import type { CalcOptions } from '@/lib/calculate'
 import { formatNPR } from '@/lib/format'
@@ -21,6 +21,7 @@ const grades: RemoteGrade[] = ['none', 'A', 'B', 'C', 'D', 'E']
 export function SpecialSituations({ options, onChange }: Props) {
   const [open, setOpen] = useState(false)
   const { t } = useApp()
+  const CFG = TAX_YEARS[options.fiscalYear]
 
   return (
     <Card>
@@ -64,7 +65,7 @@ export function SpecialSituations({ options, onChange }: Props) {
                 <label className="flex items-center justify-between gap-3 cursor-pointer">
                   <div>
                     <span className="text-sm text-foreground font-medium">{t('special.senior')}</span>
-                    <span className="block text-xs text-muted-foreground">{formatNPR(TAX_CONFIG.specialExemptions.seniorCitizen.additional)} {t('special.senior.desc')}</span>
+                    <span className="block text-xs text-muted-foreground">{formatNPR(CFG.specialExemptions.seniorCitizen.additional)} {t('special.senior.desc')}</span>
                   </div>
                   <Switch
                     checked={options.isSeniorCitizen}
@@ -76,7 +77,7 @@ export function SpecialSituations({ options, onChange }: Props) {
                   <div>
                     <span className="text-sm text-foreground font-medium">{t('special.disability')}</span>
                     <span className="block text-xs text-muted-foreground">
-                      {formatNPR(TAX_CONFIG.specialExemptions.disability[options.filingStatus])} {t('special.disability.desc')}
+                      {formatNPR(CFG.specialExemptions.disability[options.filingStatus] ?? CFG.specialExemptions.disability.single)} {t('special.disability.desc')}
                     </span>
                   </div>
                   <Switch
@@ -100,7 +101,7 @@ export function SpecialSituations({ options, onChange }: Props) {
                   <p className="text-sm text-foreground font-medium mb-2">{t('special.remote')}</p>
                   <div className="flex gap-1.5 flex-wrap">
                     {grades.map((g) => {
-                      const val = TAX_CONFIG.deductions.remoteArea[g]
+                      const val = CFG.deductions.remoteArea[g]
                       return (
                         <button
                           key={g}

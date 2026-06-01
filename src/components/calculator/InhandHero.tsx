@@ -29,11 +29,16 @@ export function InhandHero({ result }: Props) {
         <div>
           <span className="text-muted-foreground text-sm font-mono mr-0.5">₨</span>
           <AnimatedNumber
-            value={result.inhand * 12}
+            value={result.inhand * 12 + result.festivalBonusNet}
             format={(n) => Math.round(n).toLocaleString('en-IN')}
             className="text-xl md:text-2xl font-heading font-semibold text-foreground tracking-tight"
           />
         </div>
+        {result.festivalBonusAnnual > 0 && (
+          <p className="text-[10px] text-muted-foreground mt-1">
+            + ₨{Math.round(result.festivalBonusNet).toLocaleString('en-IN')} {t('output.bonus.note')}
+          </p>
+        )}
       </div>
       <div className="mt-3 flex items-center justify-center gap-4 text-sm relative">
         <span className="text-muted-foreground">
