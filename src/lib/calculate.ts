@@ -1,7 +1,8 @@
-import type { FilingStatus, RemoteGrade } from '@/config/tax'
-import { TAX_CONFIG } from '@/config/tax'
+import type { FilingStatus, RemoteGrade, FiscalYear } from '@/config/tax'
+import { TAX_YEARS } from '@/config/tax'
 
 export interface CalcOptions {
+  fiscalYear: FiscalYear
   filingStatus: FilingStatus
   includeSSF: boolean
   // true  → entered gross already includes employer's 20% SSF (CTC/loaded — annexure convention).
@@ -18,10 +19,10 @@ export interface CalcOptions {
   donationAnnual: number
   remoteAreaGrade: RemoteGrade
   hasDisability: boolean
-  isSeniorCitizen: boolean
   isFemale: boolean
   foreignTaxPaidAnnual: number
   hasMedicalExpenses: boolean
+  festivalBonusAnnual: number   // Dashain/festival bonus — taxable income, paid once a year (legal min ≈ 1 month basic)
 }
 
 export interface CalcResult {
@@ -41,6 +42,9 @@ export interface CalcResult {
   inhand: number
   effectiveRate: number
   retirementTotal: number
+  festivalBonusAnnual: number     // gross festival/Dashain bonus, received once a year
+  festivalBonusTax: number        // tax on the bonus (marginal), withheld in the bonus month
+  festivalBonusNet: number        // bonus take-home after its own tax
   slabBreakdown: SlabBreakdown[]
 }
 
@@ -76,9 +80,10 @@ function calcSlabTax(
 }
 
 export function calculate(gross: number, opts: CalcOptions): CalcResult {
+  const CFG = TAX_YEARS[opts.fiscalYear]
   const annualGross = gross * 12
-  const { basicRatio } = TAX_CONFIG.salary
-  const { employeeRate, employerRate, totalRate } = TAX_CONFIG.ssf
+  const { basicRatio } = CFG.salary
+  const { employeeRate, employerRate, totalRate } = CFG.ssf
 
   // Basic salary:
   //   Mode A (loaded gross, default): basic = 60% of gross.
@@ -103,18 +108,19 @@ export function calculate(gross: number, opts: CalcOptions): CalcResult {
   // Total SSF contribution that reduces taxable income (always 31% of basic, subject to cap)
   const ssfTaxDeductionAnnual = ssfTotalMonthly * 12
 
-  // Assessable income for tax:
+  // Assessable income for tax (regular salary only — the festival bonus is taxed
+  // separately below so it doesn't distort the monthly take-home):
   //   Mode A: gross × 12.
   //   Mode B: (gross + employer SSF) × 12 — employer's contribution is part of
-  //   employee's assessable income under Nepal's Income Tax Act.
+  //   employee's assessable income under Nepal's Income Tax Act (ITA 2058 §8).
   const annualAssessable = opts.grossIncludesEmployerSSF
     ? annualGross
     : annualGross + ssfEmployerMonthly * 12
 
   // Retirement cap: min(5L, 1/3 of annual assessable income)
   const effectiveRetirementCap = Math.min(
-    TAX_CONFIG.retirementCap.absoluteMax,
-    annualAssessable * TAX_CONFIG.retirementCap.ratioMax
+    CFG.retirementCap.absoluteMax,
+    annualAssessable * CFG.retirementCap.ratioMax
   )
   const maxCitAnnual = Math.max(0, effectiveRetirementCap - ssfTaxDeductionAnnual)
   const maxCitMonthly = maxCitAnnual / 12
@@ -124,35 +130,35 @@ export function calculate(gross: number, opts: CalcOptions): CalcResult {
   const citAnnual = citMonthly * 12
 
   // Special exemptions
-  const remoteBonus = TAX_CONFIG.deductions.remoteArea[opts.remoteAreaGrade]
+  const remoteBonus = CFG.deductions.remoteArea[opts.remoteAreaGrade]
   const disabilityBonus = opts.hasDisability
-    ? TAX_CONFIG.specialExemptions.disability[opts.filingStatus] : 0
-  const seniorBonus = opts.isSeniorCitizen
-    ? TAX_CONFIG.specialExemptions.seniorCitizen.additional : 0
+    ? (CFG.specialExemptions.disability[opts.filingStatus] ?? CFG.specialExemptions.disability.single)
+    : 0
 
   // Taxable income (before donation, to calculate donation cap)
   const preDonation = annualAssessable - ssfTaxDeductionAnnual - citAnnual
     - opts.lifeInsurance - opts.healthInsurance - opts.buildingInsurance
-    - remoteBonus - disabilityBonus - seniorBonus
+    - remoteBonus - disabilityBonus
 
   const maxDonation = Math.min(
-    TAX_CONFIG.deductions.donation.maxAbsolute,
-    preDonation * TAX_CONFIG.deductions.donation.maxPctOfTaxable
+    CFG.deductions.donation.maxAbsolute,
+    preDonation * CFG.deductions.donation.maxPctOfTaxable
   )
   const donation = Math.min(opts.donationAnnual, Math.max(0, maxDonation))
   const annualTaxable = Math.max(0, preDonation - donation)
 
-  // Slabs — zero out SST band if SSF active
-  const rawSlabs = TAX_CONFIG.taxSlabs[opts.filingStatus]
+  // Slabs for the selected filing status (couple absent for years that removed it),
+  // with the SST band zeroed out when SSF is active.
+  const rawSlabs = CFG.taxSlabs[opts.filingStatus] ?? CFG.taxSlabs.single
   const slabs = rawSlabs.map((s, i) =>
-    i === 0 && opts.includeSSF ? { ...s, rate: 0 as const } : s
+    i === 0 && opts.includeSSF ? { ...s, rate: 0 } : s
   )
 
   let { total: annualTax, breakdown } = calcSlabTax(annualTaxable, slabs)
 
   // Female rebate (single filing + Nepal employment only)
   if (opts.isFemale && opts.filingStatus === 'single') {
-    annualTax = annualTax * (1 - TAX_CONFIG.rebates.female.rate)
+    annualTax = annualTax * (1 - CFG.rebates.female.rate)
     breakdown = breakdown.map(b => ({ ...b, tax: b.tax * 0.9 }))
   }
 
@@ -161,10 +167,26 @@ export function calculate(gross: number, opts: CalcOptions): CalcResult {
   const credit = Math.min(opts.foreignTaxPaidAnnual, annualTaxable * avgRate)
   annualTax = Math.max(0, annualTax - credit)
 
-  // Medical tax credit (Section 51): flat Rs 750 credit against tax when claimed
+  // Medical tax credit (Section 51): flat credit against tax when claimed
   if (opts.hasMedicalExpenses) {
-    annualTax = Math.max(0, annualTax - TAX_CONFIG.rebates.medicalTaxCredit.max)
+    annualTax = Math.max(0, annualTax - CFG.rebates.medicalTaxCredit.max)
   }
+
+  // Festival/Dashain bonus: a once-a-year lump that is fully taxable (no exemption
+  // under ITA 2058 §8), but it is NOT spread into the monthly take-home. Tax it at
+  // the marginal slab rate (it stacks on top of regular taxable income) so the
+  // monthly figure stays the real regular-month in-hand and the bonus is shown apart.
+  let festivalBonusTax = 0
+  if (opts.festivalBonusAnnual > 0) {
+    const slabOnSalary = calcSlabTax(annualTaxable, slabs).total
+    const slabWithBonus = calcSlabTax(annualTaxable + opts.festivalBonusAnnual, slabs).total
+    festivalBonusTax = slabWithBonus - slabOnSalary
+    if (opts.isFemale && opts.filingStatus === 'single') {
+      festivalBonusTax *= (1 - CFG.rebates.female.rate)
+    }
+    festivalBonusTax = Math.max(0, festivalBonusTax)
+  }
+  const festivalBonusNet = Math.max(0, opts.festivalBonusAnnual - festivalBonusTax)
 
   const monthlyTax = annualTax / 12
   const inhand = gross - ssfMonthly - citMonthly - monthlyTax
@@ -178,6 +200,9 @@ export function calculate(gross: number, opts: CalcOptions): CalcResult {
     annualTaxable, annualTax, monthlyTax, inhand,
     effectiveRate: annualTaxable > 0 ? annualTax / annualTaxable : 0,
     retirementTotal: ssfTotalMonthly + citMonthly,
+    festivalBonusAnnual: opts.festivalBonusAnnual,
+    festivalBonusTax,
+    festivalBonusNet,
     slabBreakdown: breakdown,
   }
 }

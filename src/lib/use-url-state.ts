@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import type { CalcOptions } from './calculate'
 import type { IncomeMode } from '@/components/layout/ModeSelector'
+import { FISCAL_YEARS, DEFAULT_FY, SUPPORTS_COUPLE, type FiscalYear, type RemoteGrade } from '@/config/tax'
 
 interface UrlState {
   mode: IncomeMode
@@ -13,6 +14,7 @@ interface UrlState {
 const PARAM_MAP = {
   m: 'mode',
   g: 'gross',
+  y: 'fiscalYear',
   f: 'filingStatus',
   ssf: 'includeSSF',
   ssfm: 'grossIncludesEmployerSSF',
@@ -24,14 +26,15 @@ const PARAM_MAP = {
   don: 'donationAnnual',
   ra: 'remoteAreaGrade',
   dis: 'hasDisability',
-  sen: 'isSeniorCitizen',
   fem: 'isFemale',
   ftx: 'foreignTaxPaidAnnual',
   med: 'hasMedicalExpenses',
+  fb: 'festivalBonusAnnual',
 } as const
 
 const VALID_MODES: IncomeMode[] = ['nepal', 'foreign', 'freelancer', 'nonresident']
 const VALID_FILING = ['single', 'couple'] as const
+const VALID_FY = FISCAL_YEARS as readonly string[]
 const VALID_REMOTE = ['none', 'A', 'B', 'C', 'D', 'E'] as const
 
 export function parseUrlState(): Partial<UrlState> | null {
@@ -62,15 +65,21 @@ export function parseUrlState(): Partial<UrlState> | null {
     hasOpts = true
   }
 
+  const y = params.get('y')
+  if (y && VALID_FY.includes(y)) {
+    opts.fiscalYear = y as FiscalYear
+    hasOpts = true
+  }
+
   const boolParams: [string, keyof CalcOptions][] = [
     ['ssf', 'includeSSF'], ['ssfm', 'grossIncludesEmployerSSF'], ['cit', 'includeCIT'],
-    ['dis', 'hasDisability'], ['sen', 'isSeniorCitizen'], ['fem', 'isFemale'],
+    ['dis', 'hasDisability'], ['fem', 'isFemale'],
     ['med', 'hasMedicalExpenses'],
   ]
   for (const [key, prop] of boolParams) {
     const val = params.get(key)
     if (val !== null) {
-      (opts as any)[prop] = val === '1'
+      (opts as Record<string, unknown>)[prop] = val === '1'
       hasOpts = true
     }
   }
@@ -78,13 +87,14 @@ export function parseUrlState(): Partial<UrlState> | null {
   const numParams: [string, keyof CalcOptions][] = [
     ['ca', 'citAmount'], ['li', 'lifeInsurance'], ['hi', 'healthInsurance'],
     ['bi', 'buildingInsurance'], ['don', 'donationAnnual'], ['ftx', 'foreignTaxPaidAnnual'],
+    ['fb', 'festivalBonusAnnual'],
   ]
   for (const [key, prop] of numParams) {
     const val = params.get(key)
     if (val !== null) {
       const num = val === 'max' ? Infinity : parseInt(val, 10)
       if (!isNaN(num) && num >= 0) {
-        (opts as any)[prop] = num
+        (opts as Record<string, unknown>)[prop] = num
         hasOpts = true
       }
     }
@@ -92,13 +102,16 @@ export function parseUrlState(): Partial<UrlState> | null {
 
   const ra = params.get('ra')
   if (ra && (VALID_REMOTE as readonly string[]).includes(ra)) {
-    opts.remoteAreaGrade = ra as any
+    opts.remoteAreaGrade = ra as RemoteGrade
     hasOpts = true
   }
 
   if (hasOpts) {
+    const fy = opts.fiscalYear ?? DEFAULT_FY
     result.options = {
-      filingStatus: opts.filingStatus ?? 'single',
+      fiscalYear: fy,
+      // Old links with ?f=couple on a year that dropped couple fall back to single.
+      filingStatus: SUPPORTS_COUPLE(fy) ? (opts.filingStatus ?? 'single') : 'single',
       includeSSF: opts.includeSSF ?? true,
       grossIncludesEmployerSSF: opts.grossIncludesEmployerSSF ?? true,
       includeCIT: opts.includeCIT ?? true,
@@ -109,10 +122,10 @@ export function parseUrlState(): Partial<UrlState> | null {
       donationAnnual: opts.donationAnnual ?? 0,
       remoteAreaGrade: opts.remoteAreaGrade ?? 'none',
       hasDisability: opts.hasDisability ?? false,
-      isSeniorCitizen: opts.isSeniorCitizen ?? false,
       isFemale: opts.isFemale ?? false,
       foreignTaxPaidAnnual: opts.foreignTaxPaidAnnual ?? 0,
       hasMedicalExpenses: opts.hasMedicalExpenses ?? false,
+      festivalBonusAnnual: opts.festivalBonusAnnual ?? 0,
     }
   }
 
@@ -132,6 +145,7 @@ export function useUrlSync(mode: IncomeMode, gross: number, options: CalcOptions
     const params = new URLSearchParams()
     params.set('m', mode)
     params.set('g', String(Math.round(gross)))
+    params.set('y', options.fiscalYear)
     params.set('f', options.filingStatus)
     params.set('ssf', options.includeSSF ? '1' : '0')
     // Only emit non-default ssfm (default = true, loaded/CTC)
@@ -144,10 +158,10 @@ export function useUrlSync(mode: IncomeMode, gross: number, options: CalcOptions
     if (options.donationAnnual > 0) params.set('don', String(Math.round(options.donationAnnual)))
     if (options.remoteAreaGrade !== 'none') params.set('ra', options.remoteAreaGrade)
     if (options.hasDisability) params.set('dis', '1')
-    if (options.isSeniorCitizen) params.set('sen', '1')
     if (options.isFemale) params.set('fem', '1')
     if (options.foreignTaxPaidAnnual > 0) params.set('ftx', String(Math.round(options.foreignTaxPaidAnnual)))
     if (options.hasMedicalExpenses) params.set('med', '1')
+    if (options.festivalBonusAnnual > 0) params.set('fb', String(Math.round(options.festivalBonusAnnual)))
 
     const url = `${window.location.pathname}?${params.toString()}`
     window.history.replaceState(null, '', url)

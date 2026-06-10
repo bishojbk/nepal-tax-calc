@@ -7,7 +7,7 @@ import { ComparisonTable } from './ComparisonTable'
 import { formatNPR, formatPct } from '@/lib/format'
 import { useApp } from '@/lib/app-context'
 import { calculate, type CalcOptions, type CalcResult } from '@/lib/calculate'
-import { TAX_CONFIG } from '@/config/tax'
+import { UI_CONFIG } from '@/config/tax'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { ArrowRight, TrendingUp, Target, AlertTriangle, Building2 } from 'lucide-react'
 
@@ -22,7 +22,7 @@ export function RaisePlanner({ currentResult, options }: Props) {
     Math.round(currentResult.gross * 1.25 / 5000) * 5000
   )
   const [goalInhand, setGoalInhand] = useState('')
-  const { slider } = TAX_CONFIG.ui
+  const { slider } = UI_CONFIG
 
   const targetResult = useMemo(
     () => calculate(targetGross, { ...options, citAmount: Infinity }),
@@ -51,7 +51,7 @@ export function RaisePlanner({ currentResult, options }: Props) {
   const newSlabCrossed = targetTopSlab && currentTopSlab && targetTopSlab.label !== currentTopSlab.label
     ? targetTopSlab.label : null
 
-  const verdict = TAX_CONFIG.ui.verdicts.find(
+  const verdict = UI_CONFIG.verdicts.find(
     (v) => raisePct >= v.minPct && raisePct < v.maxPct
   )
 

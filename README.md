@@ -1,6 +1,6 @@
 # 🇳🇵 Nepal Salary Tax Calculator
 
-A production-quality Nepal income tax calculator for **FY 2081/82 (2024/25)**, built with Next.js, TypeScript, Tailwind CSS, shadcn/ui, and Framer Motion.
+A production-quality Nepal income tax calculator for **FY 2082/83 (2025/26)** and **FY 2083/84 (2026/27)** — switchable via a year selector — built with Next.js, TypeScript, Tailwind CSS, shadcn/ui, and Framer Motion.
 
 **[Live Demo](#) · [Report Bug](https://github.com/bishojbk/nepal-tax-calc/issues)**
 
@@ -25,8 +25,9 @@ A production-quality Nepal income tax calculator for **FY 2081/82 (2024/25)**, b
 - CIT paradox callout above ₨1,25,000 gross
 - All insurance deductions (life, health, building)
 - Donation with auto-capped limit
-- Filing status (Single/Couple) with female rebate trade-off tooltip
-- Special situations: female rebate, senior citizen, disability, remote area grades
+- Fiscal-year selector — FY 2082/83 (current law, default) or FY 2083/84 (proposed Budget 2083/84 — unified slabs, top rate 29%; pending enactment, ~mid-July 2026)
+- Filing status (Single/Couple) — FY 2082/83 only; couple filing was abolished for FY 2083/84
+- Special situations: female rebate, disability, remote area grades
 - Tax slab waterfall chart with animated bars
 
 ### Raise Planner
@@ -56,19 +57,22 @@ Full English and Nepali (नेपाली) support — every label, descriptio
 
 ## Tax Logic Verified
 
-The calculation engine passes against real payslip data:
+The engine passes 35+ unit tests, including real payslip anchors (FY 2082/83):
 
 ```
 Test 1: ₨1,20,000/mo → SSF ₨22,320 · CIT ₨17,680 · Tax ₨6,000 · In-hand ₨74,000 ✓
 Test 2: ₨1,50,000/mo → SSF ₨27,900 · CIT ₨13,767 · Tax ₨13,167 · In-hand ₨95,167 ✓
 ```
 
+**FY 2083/84 slabs** (Budget 2083/84 — couple filing removed): 1% ≤₨10L · 10% ₨10–15L · 20% ₨15–25L · 27% ₨25–40L · 29% >₨40L. At ₨1,50,000/mo this drops monthly tax to ~₨2,500.
+
 Key formula details:
 - **SSF** = 31% of basic (basic = 60% of gross)
-- **Retirement cap** = min(₨5,00,000/yr, 1/3 of annual gross)
+- **Retirement cap** = min(₨5,00,000/yr, 1/3 of annual assessable income)
 - **CIT** = retirement cap − SSF (voluntary, tax-deductible)
 - **SST waiver** — SSF contributors skip the 1% first slab
-- **Female rebate** — 10% off tax liability (single filing only)
+- **Female rebate** — 10% off tax liability (individual filing)
+- **Medical tax credit** — ₨1,500 flat (Income Tax Act s.51)
 
 ---
 
@@ -149,14 +153,14 @@ src/
 
 ## Updating for Next Fiscal Year
 
-All tax constants live in `src/config/tax.ts`. To update for FY 2082/83:
+Tax rules live per year in `TAX_YEARS` in `src/config/tax.ts`. To add FY 2084/85:
 
-1. Update slab thresholds/rates in `taxSlabs.single` and `taxSlabs.couple`
-2. Update deduction caps if changed
-3. Run `npx jest` to verify
-4. Update the subtitle in `src/config/i18n.ts`
+1. Add the year to the `FiscalYear` union, then copy the most recent `TAX_YEARS` entry.
+2. Change its `label` and `taxSlabs.single` (and `couple` if it applies, `disability` if the basic exemption moved).
+3. Optionally point `DEFAULT_FY` at the new year.
+4. Run `npx jest` to verify.
 
-Zero magic numbers elsewhere — one file, one change.
+Shared constants (SSF rates, insurance/donation caps, retirement cap, medical credit) live in `COMMON`; year-independent UI in `UI_CONFIG`. A year offers couple filing iff its `taxSlabs.couple` exists — the selector and filing UI adapt automatically.
 
 ---
 

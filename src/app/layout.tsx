@@ -23,13 +23,13 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Nepal Salary Tax Calculator — FY 2081/82",
+  title: "Nepal Salary Tax Calculator — FY 2082/83 & 2083/84",
   description: "Calculate your Nepal income tax, SSF, CIT, and take-home salary. Supports all filing statuses and deductions under Income Tax Act 2058.",
-  keywords: ["Nepal tax calculator", "income tax Nepal", "salary calculator Nepal", "SSF calculator", "CIT calculator", "FY 2081/82", "Nepal tax slab", "take home salary Nepal"],
+  keywords: ["Nepal tax calculator", "income tax Nepal", "salary calculator Nepal", "SSF calculator", "CIT calculator", "FY 2083/84", "FY 2082/83", "Nepal tax slab", "take home salary Nepal"],
   authors: [{ name: "nepal-tax-calc" }],
   metadataBase: new URL("https://nepal-tax-calc.vercel.app"),
   openGraph: {
-    title: "Nepal Salary Tax Calculator — FY 2081/82",
+    title: "Nepal Salary Tax Calculator — FY 2082/83 & 2083/84",
     description: "Calculate your Nepal income tax, SSF, CIT, and take-home salary instantly. Supports Nepal employment, foreign employment, freelancer, and non-resident modes.",
     type: "website",
     locale: "en_US",
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Nepal Salary Tax Calculator — FY 2081/82",
+    title: "Nepal Salary Tax Calculator — FY 2082/83 & 2083/84",
     description: "Calculate your Nepal income tax, SSF, CIT, and take-home salary instantly.",
   },
   other: {
