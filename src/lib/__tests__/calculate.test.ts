@@ -14,7 +14,6 @@ const baseOpts: CalcOptions = {
   donationAnnual: 0,
   remoteAreaGrade: 'none',
   hasDisability: false,
-  isSeniorCitizen: false,
   isFemale: false,
   foreignTaxPaidAnnual: 0,
   hasMedicalExpenses: false,
@@ -134,16 +133,6 @@ test('female rebate denied with couple filing', () => {
   // isFemale should have no effect when couple filing
   // Note: the calculate function applies female rebate only when filingStatus === 'single'
   expect(coupleFemale.annualTax).toBe(couple.annualTax)
-})
-
-/* ─── Senior citizen ──────────────────────────────────────────────── */
-
-test('senior citizen gets ₨50K additional exemption', () => {
-  const normal = calculate(150_000, baseOpts)
-  const senior = calculate(150_000, { ...baseOpts, isSeniorCitizen: true })
-  // Senior should have lower taxable income
-  expect(senior.annualTaxable).toBe(normal.annualTaxable - 50_000)
-  expect(senior.annualTax).toBeLessThan(normal.annualTax)
 })
 
 /* ─── Disability exemption ────────────────────────────────────────── */

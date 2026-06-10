@@ -64,17 +64,6 @@ export function SpecialSituations({ options, onChange }: Props) {
 
                 <label className="flex items-center justify-between gap-3 cursor-pointer">
                   <div>
-                    <span className="text-sm text-foreground font-medium">{t('special.senior')}</span>
-                    <span className="block text-xs text-muted-foreground">{formatNPR(CFG.specialExemptions.seniorCitizen.additional)} {t('special.senior.desc')}</span>
-                  </div>
-                  <Switch
-                    checked={options.isSeniorCitizen}
-                    onCheckedChange={(v: boolean) => onChange({ isSeniorCitizen: v })}
-                  />
-                </label>
-
-                <label className="flex items-center justify-between gap-3 cursor-pointer">
-                  <div>
                     <span className="text-sm text-foreground font-medium">{t('special.disability')}</span>
                     <span className="block text-xs text-muted-foreground">
                       {formatNPR(CFG.specialExemptions.disability[options.filingStatus] ?? CFG.specialExemptions.disability.single)} {t('special.disability.desc')}

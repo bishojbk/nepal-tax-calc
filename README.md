@@ -25,9 +25,9 @@ A production-quality Nepal income tax calculator for **FY 2082/83 (2025/26)** an
 - CIT paradox callout above ₨1,25,000 gross
 - All insurance deductions (life, health, building)
 - Donation with auto-capped limit
-- Fiscal-year selector — FY 2082/83 (current law) or FY 2083/84 (new unified slabs, top rate 29%)
+- Fiscal-year selector — FY 2082/83 (current law, default) or FY 2083/84 (proposed Budget 2083/84 — unified slabs, top rate 29%; pending enactment, ~mid-July 2026)
 - Filing status (Single/Couple) — FY 2082/83 only; couple filing was abolished for FY 2083/84
-- Special situations: female rebate, senior citizen, disability, remote area grades
+- Special situations: female rebate, disability, remote area grades
 - Tax slab waterfall chart with animated bars
 
 ### Raise Planner

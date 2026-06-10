@@ -44,7 +44,6 @@ export default function Page() {
     donationAnnual: 0,
     remoteAreaGrade: 'none',
     hasDisability: false,
-    isSeniorCitizen: false,
     isFemale: false,
     foreignTaxPaidAnnual: 0,
     hasMedicalExpenses: false,
@@ -100,7 +99,7 @@ export default function Page() {
                 <span className="text-2xl" role="img" aria-label="Nepal flag">🇳🇵</span>
                 <span>{t('app.title')}</span>
               </h1>
-              <p className="text-xs text-muted-foreground mt-1 tracking-wide">{t('fy.prefix')} {TAX_YEARS[options.fiscalYear].label.bs} ({TAX_YEARS[options.fiscalYear].label.ad}) — {options.fiscalYear === DEFAULT_FY ? t('fy.new') : t('fy.current')} · {t('app.actname')}</p>
+              <p className="text-xs text-muted-foreground mt-1 tracking-wide">{t('fy.prefix')} {TAX_YEARS[options.fiscalYear].label.bs} ({TAX_YEARS[options.fiscalYear].label.ad}) — {TAX_YEARS[options.fiscalYear].status === 'proposed' ? t('fy.proposed') : t('fy.current')} · {t('app.actname')}</p>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="flex items-center gap-0.5 bg-secondary/80 rounded-lg p-0.5 mr-0.5" role="group" aria-label={t('fy.label')}>
@@ -114,7 +113,7 @@ export default function Page() {
                     }`}
                   >
                     <span className="block leading-none">{TAX_YEARS[fy].label.bs}</span>
-                    <span className="block text-[9px] font-normal opacity-70 leading-tight mt-0.5">{fy === DEFAULT_FY ? t('fy.new') : t('fy.current')}</span>
+                    <span className="block text-[9px] font-normal opacity-70 leading-tight mt-0.5">{TAX_YEARS[fy].status === 'proposed' ? t('fy.proposed') : t('fy.current')}</span>
                   </button>
                 ))}
               </div>
@@ -274,7 +273,7 @@ function ForeignMode({ fiscalYear }: { fiscalYear: FiscalYear }) {
     fiscalYear, filingStatus: effectiveFiling, includeSSF: false, grossIncludesEmployerSSF: true,
     includeCIT: useCit, citAmount: Infinity,
     lifeInsurance: 0, healthInsurance: 0, buildingInsurance: 0, donationAnnual: 0,
-    remoteAreaGrade: 'none', hasDisability: false, isSeniorCitizen: false,
+    remoteAreaGrade: 'none', hasDisability: false,
     isFemale, foreignTaxPaidAnnual: isZero ? 0 : foreignTax,
     hasMedicalExpenses: false, festivalBonusAnnual: 0,
   }

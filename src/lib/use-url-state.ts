@@ -26,7 +26,6 @@ const PARAM_MAP = {
   don: 'donationAnnual',
   ra: 'remoteAreaGrade',
   dis: 'hasDisability',
-  sen: 'isSeniorCitizen',
   fem: 'isFemale',
   ftx: 'foreignTaxPaidAnnual',
   med: 'hasMedicalExpenses',
@@ -74,7 +73,7 @@ export function parseUrlState(): Partial<UrlState> | null {
 
   const boolParams: [string, keyof CalcOptions][] = [
     ['ssf', 'includeSSF'], ['ssfm', 'grossIncludesEmployerSSF'], ['cit', 'includeCIT'],
-    ['dis', 'hasDisability'], ['sen', 'isSeniorCitizen'], ['fem', 'isFemale'],
+    ['dis', 'hasDisability'], ['fem', 'isFemale'],
     ['med', 'hasMedicalExpenses'],
   ]
   for (const [key, prop] of boolParams) {
@@ -123,7 +122,6 @@ export function parseUrlState(): Partial<UrlState> | null {
       donationAnnual: opts.donationAnnual ?? 0,
       remoteAreaGrade: opts.remoteAreaGrade ?? 'none',
       hasDisability: opts.hasDisability ?? false,
-      isSeniorCitizen: opts.isSeniorCitizen ?? false,
       isFemale: opts.isFemale ?? false,
       foreignTaxPaidAnnual: opts.foreignTaxPaidAnnual ?? 0,
       hasMedicalExpenses: opts.hasMedicalExpenses ?? false,
@@ -160,7 +158,6 @@ export function useUrlSync(mode: IncomeMode, gross: number, options: CalcOptions
     if (options.donationAnnual > 0) params.set('don', String(Math.round(options.donationAnnual)))
     if (options.remoteAreaGrade !== 'none') params.set('ra', options.remoteAreaGrade)
     if (options.hasDisability) params.set('dis', '1')
-    if (options.isSeniorCitizen) params.set('sen', '1')
     if (options.isFemale) params.set('fem', '1')
     if (options.foreignTaxPaidAnnual > 0) params.set('ftx', String(Math.round(options.foreignTaxPaidAnnual)))
     if (options.hasMedicalExpenses) params.set('med', '1')

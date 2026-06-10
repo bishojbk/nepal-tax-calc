@@ -21,6 +21,8 @@ export interface TaxSlab {
 
 export interface YearConfig {
   label: { bs: string; ad: string }
+  // 'proposed' = figures come from a budget bill not yet passed into law.
+  status: 'enacted' | 'proposed'
   salary: { basicRatio: number }
   ssf: {
     employeeRate: number
@@ -39,7 +41,6 @@ export interface YearConfig {
   }
   specialExemptions: {
     disability: { single: number; couple?: number }
-    seniorCitizen: { additional: number }
   }
   rebates: {
     female: { rate: number }
@@ -89,6 +90,7 @@ export const TAX_YEARS: Record<FiscalYear, YearConfig> = {
   // FY 2082/83 (2025/26) — rates unchanged from 2081/82. Couple filing available.
   '2082/83': {
     label: { bs: '2082/83', ad: '2025/26' },
+    status: 'enacted',
     ...COMMON,
     taxSlabs: {
       single: [
@@ -112,14 +114,16 @@ export const TAX_YEARS: Record<FiscalYear, YearConfig> = {
     specialExemptions: {
       // 50% of the 5L (single) / 6L (couple) basic exemption.
       disability: { single: 250_000, couple: 300_000 },
-      seniorCitizen: { additional: 50_000 },
     },
   },
 
-  // FY 2083/84 (2026/27) — Budget 2083/84. Couple concept removed; top rate
-  // cut to 29%; 1% band raised to ₨10L.
+  // FY 2083/84 (2026/27) — PROPOSED. Figures are from Finance Bill 2083 (tabled
+  // ~29 May 2026), NOT the enacted Finance Act — verified still a registered bill
+  // as of Jun 2026, expected to pass ~Shrawan 2083 (mid-July 2026) and may be
+  // amended in passage. Couple concept removed; top rate cut to 29%; 1% band → ₨10L.
   '2083/84': {
     label: { bs: '2083/84', ad: '2026/27' },
+    status: 'proposed',
     ...COMMON,
     taxSlabs: {
       single: [
@@ -133,12 +137,13 @@ export const TAX_YEARS: Record<FiscalYear, YearConfig> = {
     },
     specialExemptions: {
       disability: { single: 500_000 },   // 50% of the new ₨10L basic exemption
-      seniorCitizen: { additional: 50_000 },
     },
   },
 }
 
-export const DEFAULT_FY: FiscalYear = '2083/84'
+// Land on the enacted year. 2083/84 stays selectable but is still a budget bill,
+// so it should not be the default until it becomes law (re-evaluate after mid-July 2026).
+export const DEFAULT_FY: FiscalYear = '2082/83'
 
 export const FISCAL_YEARS = Object.keys(TAX_YEARS) as FiscalYear[]
 

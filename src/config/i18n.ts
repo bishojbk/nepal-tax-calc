@@ -7,7 +7,7 @@ const translations = {
   'fy.prefix': { en: 'FY', ne: 'आ.व.' },
   'fy.label': { en: 'Fiscal Year', ne: 'आर्थिक वर्ष' },
   'fy.current': { en: 'Current', ne: 'हालको' },
-  'fy.new': { en: 'New budget', ne: 'नयाँ बजेट' },
+  'fy.proposed': { en: 'Proposed', ne: 'प्रस्तावित' },
 
   // Mode selector
   'mode.nepal': { en: 'Nepal Employment', ne: 'नेपाल रोजगारी' },
@@ -72,8 +72,6 @@ const translations = {
   'special.female': { en: 'Female Employee', ne: 'महिला कर्मचारी' },
   'special.female.desc': { en: '10% rebate on tax liability', ne: 'कर दायित्वमा १०% छुट' },
   'special.female.denied': { en: 'Not available with couple filing — female rebate forfeited', ne: 'दम्पती दाखिलामा उपलब्ध छैन — महिला छुट रद्द' },
-  'special.senior': { en: 'Senior Citizen (60+)', ne: 'जेष्ठ नागरिक (६०+)' },
-  'special.senior.desc': { en: 'extra exemption', ne: 'अतिरिक्त छुट' },
   'special.disability': { en: 'Disability', ne: 'अपाङ्गता' },
   'special.disability.desc': { en: 'extra exemption — certificate required', ne: 'अतिरिक्त छुट — प्रमाणपत्र आवश्यक' },
   'special.medical': { en: 'Medical Expenses', ne: 'चिकित्सा खर्च' },

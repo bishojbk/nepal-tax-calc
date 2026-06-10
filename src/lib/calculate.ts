@@ -19,7 +19,6 @@ export interface CalcOptions {
   donationAnnual: number
   remoteAreaGrade: RemoteGrade
   hasDisability: boolean
-  isSeniorCitizen: boolean
   isFemale: boolean
   foreignTaxPaidAnnual: number
   hasMedicalExpenses: boolean
@@ -135,13 +134,11 @@ export function calculate(gross: number, opts: CalcOptions): CalcResult {
   const disabilityBonus = opts.hasDisability
     ? (CFG.specialExemptions.disability[opts.filingStatus] ?? CFG.specialExemptions.disability.single)
     : 0
-  const seniorBonus = opts.isSeniorCitizen
-    ? CFG.specialExemptions.seniorCitizen.additional : 0
 
   // Taxable income (before donation, to calculate donation cap)
   const preDonation = annualAssessable - ssfTaxDeductionAnnual - citAnnual
     - opts.lifeInsurance - opts.healthInsurance - opts.buildingInsurance
-    - remoteBonus - disabilityBonus - seniorBonus
+    - remoteBonus - disabilityBonus
 
   const maxDonation = Math.min(
     CFG.deductions.donation.maxAbsolute,
